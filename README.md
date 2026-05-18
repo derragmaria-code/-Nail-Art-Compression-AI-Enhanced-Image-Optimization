@@ -220,9 +220,10 @@ curl -X POST "http://localhost:8000/compress" \
 ---
 
 ## 🙏 Acknowledgments
-
+- “Rumi saw God within himself; I see you within my work.”
+Special thanks to you Aziz for your support, encouragement, and presence throughout this project. Your impact exists in every detail of it.
 - DnCNN architecture: [Zhang et al., "Beyond a Gaussian Denoiser"](https://arxiv.org/abs/1608.08151)
-- Dataset: Custom nail art collection
+
 - Kaggle community for GPU resources
 
 ---
