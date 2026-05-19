@@ -1,298 +1,170 @@
- 💅 Nail Art Compression Pro
+# Nail Art Compression Pro
 
-### AI-Assisted Compression & Restoration for Beauty Imagery
+## Abstract
 
-[![Python](https://img.shields.io/badge/Python-3.10%2B-blue)](https://python.org)
-[![PyTorch](https://img.shields.io/badge/PyTorch-2.0%2B-orange)](https://pytorch.org)
-[![Gradio](https://img.shields.io/badge/Gradio-4.0%2B-green)](https://gradio.app)
-[![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-
-An interactive AI-powered image compression system designed specifically for **nail art and beauty images**. The project combines **real JPEG entropy-coded compression** with **deep learning-based artifact reduction (DnCNN)** to preserve fine artistic details while achieving true file size reduction.
-
-> 🎯 **Optimized for**: Instagram, Etsy, salon websites, mobile portfolios, e-commerce platforms
+We present Nail Art Compression Pro, a domain-aware image compression and restoration pipeline designed for high-frequency cosmetic imagery such as nail art photographs. The system combines real JPEG entropy-coded compression with a deep convolutional denoising network (DnCNN) operating in the luminance domain (YCbCr-Y) to mitigate compression artifacts while preserving perceptually critical fine-grained structures. We further introduce a region-of-interest (ROI) evaluation protocol focused on nail-centric image regions to better reflect perceptual quality in application-specific settings. The framework integrates chroma subsampling control, multi-scale inference, and perceptual metrics (PSNR, SSIM, LPIPS) within an interactive Gradio-based interface.
 
 ---
 
-## ✨ Why This Project?
+## 1. Introduction
 
-Traditional JPEG compression destroys what makes nail art beautiful:
+Standard image compression algorithms (e.g., JPEG) are optimized for general-purpose imagery and often fail to preserve high-frequency details in structured cosmetic imagery such as nail art. This leads to perceptible artifacts including blocking, ringing, and color banding, which are particularly detrimental in e-commerce and portfolio contexts.
 
-| Problem | Standard JPEG | Our Solution |
-|---------|-------------|--------------|
-| Glitter texture | ❌ Blocky, lost | ✅ Preserved via DnCNN Y-channel denoising |
-| Gradient backgrounds | ❌ Banding artifacts | ✅ Smooth reconstruction + multi-scale blending |
-| Fine line details | ❌ Blurred/ringing | ✅ Edge-preserving denoising + optional sharpening |
-| Skin tone transitions | ❌ Patchy | ✅ Natural gradients via proper YCbCr processing |
-| Reflective surfaces | ❌ Flat | ✅ Specular detail restored |
-| Fake file sizes | ❌ Numpy array size reported | ✅ Real entropy-coded JPEG size |
-| Wrong color space | ❌ RGB DCT (unnatural) | ✅ YCbCr with chroma subsampling control |
-| Forced upscaling | ❌ 512×512 blur | ✅ Smart resize preserves nail scale |
+We address this limitation by introducing a hybrid compression-restoration pipeline that combines:
+
+* Standard JPEG entropy-coded compression for true bitrate reduction
+* A learned denoising model (DnCNN) applied to luminance components
+* ROI-based perceptual evaluation tailored to nail-centric content
 
 ---
 
-## 🚀 Features
+## 2. Method
 
-- 📸 **Drag & drop upload** — Supports JPG, PNG, WEBP
-- 🗜️ **4 quality presets** — Basique (Q25) → Premium (Q90)
-- 🎨 **Chroma subsampling control** — 4:2:0 / 4:2:2 / 4:4:4 for color-critical nail art
-- 🤖 **AI toggle** — Enable/disable DnCNN per image
-- 🔍 **Multi-scale DnCNN** — Original + half-scale blend for better artifact handling
-- ✨ **Detail sharpening** — Optional unsharp mask to recover edge crispness
-- 📊 **Real-time metrics** — PSNR, SSIM, BPP, real file size, compression ratio, LPIPS
-- 🎯 **ROI nail metrics** — Proof of quality at nail scale (not just global average)
-- 🔬 **Zoom comparison** — Side-by-side pixel-level proof of detail preservation
-- 💾 **One-click download** — PNG output
-- 🌈 **Full RGB color** — YCbCr processing with preserved chroma
+### 2.1 Overview
 
----
+Given an input RGB image (I), the pipeline performs:
 
-## 🧠 Pipeline Architecture
-
-```
-┌─────────────┐    ┌──────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
-│  RGB Input  │ → │ Smart Resize │ → │ Real JPEG   │ → │ DnCNN       │ → │ Optimized   │
-│  (any size) │    │ (preserve    │    │ Encode      │    │ (Y channel  │    │ RGB Output  │
-│             │    │ nail scale)  │    │ (entropy    │    │ + multi-    │    │             │
-└─────────────┘    └──────────────┘    │ coding)     │    │ scale)      │    └─────────────┘
-                                       └─────────────┘    └──────┬──────┘
-                                                                  │
-                                       ┌──────────────────────────┘
-                                       ↓
-                              ┌─────────────────┐
-                              │ Optional Sharpen│
-                              │ (unsharp mask)  │
-                              └─────────────────┘
-```
-
-### DnCNN Restoration
-
-The **Y (luminance) channel** is processed by a **20-layer DnCNN** trained specifically for that compression level. The network learns to:
-
-- Remove DCT blocking artifacts
-- Suppress ringing near edges
-- Recover high-frequency texture details (glitter, foil, fine lines)
-- Preserve semantic structure
-
-**Multi-scale blending**: Runs DnCNN at original resolution + half resolution, then blends 70/30. This better handles coarse block artifacts that appear at nail-scale resolutions.
-
-### ROI Nail Metrics
-
-Unlike generic compression tools, we compute metrics on the **center ROI** (where the nail is located), not just the full image. This proves quality is preserved at nail scale:
-
-| Metric Type | What it measures |
-|-------------|------------------|
-| Global | Full image average (can hide background blur) |
-| **Nail ROI** | **Center 50% where detail matters** |
+1. Color space conversion: RGB → YCbCr
+2. Optional spatial resizing with scale preservation heuristics
+3. JPEG compression with configurable quality factor Q and chroma subsampling
+4. DnCNN-based restoration on luminance channel Y
+5. Multi-scale fusion of restored outputs
+6. Reconstruction: YCbCr → RGB
 
 ---
 
-## 🛠️ Tech Stack
+### 2.2 JPEG Compression Module
 
-| Layer | Technology | Purpose |
-|-------|-----------|---------|
-| Backend | Python + Gradio | Interactive web UI |
-| ML Framework | PyTorch 2.0 | DnCNN inference |
-| Image Processing | Pillow + NumPy + OpenCV | Real JPEG encode/decode, YCbCr conversion |
-| Metrics | scikit-image + lpips | PSNR / SSIM / LPIPS computation |
-| Deployment | Gradio Share | Public URL generation |
+We employ standard entropy-coded JPEG compression with explicit control over:
 
----
+* Quality factor Q ∈ {25, 50, 75, 90}
+* Chroma subsampling ratios: 4:2:0, 4:2:2, 4:4:4
 
-## 📂 Project Structure
-
-```
-nail-art-compression/
-│
-├── 📁 models/                          # Pre-trained DnCNN weights
-│   ├── dncnn_pq_q10.pt                 # Ultra-low quality restoration
-│   ├── dncnn_pq_q25.pt                 # Low quality (max compression)
-│   ├── dncnn_pq_q50.pt                 # Medium quality (balanced)
-│   └── dncnn_pq_q75.pt                 # High quality restoration
-│
-├── 📄 nail_art_compression_pro.ipynb   # Kaggle notebook
-├── 📄 app.py                           # Gradio application
-├── 📄 requirements.txt                 # Dependencies
-│
-└── 📁 assets/                          # Screenshots & demo images
-    └── demo_comparison.png
-```
+Unlike tensor-based approximations, bitrate measurements are derived from actual encoded JPEG bitstreams.
 
 ---
 
-## ⚙️ Installation & Setup
+### 2.3 DnCNN Restoration
 
-### Option A: Kaggle Notebook (Recommended)
-1. Open [Kaggle Notebooks](https://www.kaggle.com/code)
-2. Add dataset: `mariyyyaaella/dncnn-nail-art-models`
-3. Copy `nail_art_compression_pro.ipynb`
-4. Run all cells → Gradio interface appears
+We adopt a 20-layer DnCNN architecture operating exclusively on the luminance channel. The model is trained to learn a residual mapping:
 
-### Option B: Local Environment
+[
+R(Y) = Y_{clean} - Y_{compressed}
+]
 
-```bash
-# Clone repository
-git clone https://github.com/derragmaria-code/nail-art-compression.git
-cd nail-art-compression
+The restored output is computed as:
 
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
+[
+\hat{Y} = Y_{compressed} + R(Y_{compressed})
+]
 
-# Install dependencies
-pip install -r requirements.txt
-
-# Download models (if not included)
-# Place .pt files in ./models/
-
-# Launch
-python app.py
-```
-
-### requirements.txt
-
-```text
-gradio>=4.0
-torch>=2.0
-torchvision
-numpy
-pillow
-opencv-python
-scipy
-scikit-image
-lpips
-```
+Multi-scale inference is performed by applying the model at both original and downsampled resolutions, followed by weighted fusion.
 
 ---
 
-## ▶️ Usage
+### 2.4 ROI-Based Evaluation
 
-### Gradio Interface
+To better reflect application-specific perceptual quality, we define a central region-of-interest (ROI) covering the primary nail region. Metrics are computed both globally and within ROI crops:
 
-```python
-# In Kaggle cell or local Python
-python app.py
+* Global image metrics
+* ROI-centered metrics (central 50% crop)
 
-# Output:
-# Running on local URL:  http://127.0.0.1:7860
-# Running on public URL: https://xxxx.gradio.live  ← Share this!
-```
-
-### API Endpoint (FastAPI mode)
-
-```bash
-# Start backend
-uvicorn backend:app --host 0.0.0.0 --port 8000
-
-# Test compression
-curl -X POST "http://localhost:8000/compress" \
-  -F "file=@nail_art.jpg" \
-  -F "quality=50" \
-  -F "apply_dncnn=true" \
-  -F "chroma_subsampling=4:2:2"
-```
+This mitigates bias introduced by background regions in full-image averaging.
 
 ---
 
-## 📊 Metrics Explained
+## 3. Experimental Setup
 
-| Metric | Formula Range | Interpretation |
-|--------|--------------|----------------|
-| **PSNR** | 0 → ∞ dB | >30 dB = good, >40 dB = excellent |
-| **SSIM** | 0 → 1 | >0.95 = perceptually identical |
-| **LPIPS** | 0 → 1 | Lower = more perceptually similar (learned metric) |
-| **BPP** | 0 → 24 | Lower = more compressed. Calculated from real JPEG bitstream |
-| **File Size** | KB | Actual entropy-coded size, not numpy array |
-| **Ratio** | X:1 | Uncompressed size / compressed size |
+### 3.1 Metrics
 
-### Typical Results
+We evaluate performance using:
 
-| Quality | Chroma | DnCNN | Multi-Scale | PSNR (global) | PSNR (nail) | SSIM (nail) | Size | Ratio | Use Case |
-|---------|--------|-------|-------------|---------------|-------------|-------------|------|-------|----------|
-| Q25 | 4:2:0 | ❌ Off | — | 28 dB | 27 dB | 0.82 | 20 KB | 12:1 | Thumbnail |
-| Q25 | 4:2:0 | ✅ On | ✅ On | 34 dB | **35 dB** | **0.91** | 20 KB | 12:1 | ✅ **Optimal** |
-| Q50 | 4:2:0 | ❌ Off | — | 32 dB | 31 dB | 0.89 | 35 KB | 8:1 | Preview |
-| Q50 | 4:2:0 | ✅ On | ✅ On | 38 dB | **39 dB** | **0.95** | 35 KB | 8:1 | ✅ **Optimal** |
-| Q75 | 4:2:2 | ❌ Off | — | 36 dB | 35 dB | 0.94 | 65 KB | 5:1 | Gallery |
-| Q75 | 4:2:2 | ✅ On | ✅ On | 41 dB | **42 dB** | **0.97** | 65 KB | 5:1 | ✅ **Optimal** |
-| Q90 | 4:4:4 | ✅ On | ✅ On | 43 dB | **44 dB** | **0.98** | 120 KB | 3:1 | Premium |
-
-> **Note**: Sizes are approximate and depend on image content. Real entropy coding produces variable bitrates.
-> **Key insight**: PSNR (nail) > PSNR (global) proves quality is concentrated where it matters — not averaged with background blur.
+* PSNR (Peak Signal-to-Noise Ratio)
+* SSIM (Structural Similarity Index)
+* LPIPS (Learned Perceptual Image Patch Similarity)
+* Bits-per-pixel (BPP)
+* True JPEG file size (entropy-coded output)
 
 ---
 
-## 💡 Added Value vs. Standard Tools
+### 3.2 Implementation Details
 
-| Feature | TinyPNG | Squoosh | JPEGmini | **Ours** |
-|---------|---------|---------|----------|----------|
-| Generic compression | ✅ | ✅ | ✅ | ✅ |
-| AI artifact removal | ❌ | ❌ | ❌ | ✅ |
-| Quality-specific models | ❌ | ❌ | ❌ | ✅ |
-| Nail-art optimized | ❌ | ❌ | ❌ | ✅ |
-| Real file size metrics | ✅ | ✅ | ✅ | ✅ |
-| Perceptual metrics (LPIPS) | ❌ | ❌ | ❌ | ✅ |
-| Chroma subsampling control | ✅ | ✅ | ❌ | ✅ |
-| Multi-scale AI processing | ❌ | ❌ | ❌ | ✅ |
-| Smart scale preservation | ❌ | ❌ | ❌ | ✅ |
-| **ROI nail metrics** | ❌ | ❌ | ❌ | ✅ |
-| **Zoom comparison proof** | ❌ | ❌ | ❌ | ✅ |
-| Open source | ❌ | ✅ | ❌ | ✅ |
+* Framework: PyTorch 2.0
+* Interface: Gradio 4.0
+* Image processing: PIL, OpenCV, NumPy
+* Perceptual metrics: scikit-image, LPIPS
 
 ---
 
-## 🎯 Use Cases
+## 4. System Architecture
 
-- 💅 **Nail artist portfolios** — Instagram-perfect quality at half the size
-- 🛒 **Beauty e-commerce** — Fast-loading product images with true file sizes
-- 📱 **Mobile salons** — Quick portfolio sharing without data waste
-- 🖨️ **Print workflows** — Preview compression before sending to printer
-- 🌐 **Website galleries** — Optimized thumbnails with full-quality lightbox
-- 📸 **Social media batch prep** — Consistent quality across platforms
+Input RGB Image
+→ Color Conversion (YCbCr)
+→ JPEG Compression (entropy-coded)
+→ DnCNN (Y channel)
+→ Multi-scale fusion
+→ Reconstruction (RGB output)
 
----
+Optional modules:
 
-## 🔮 Roadmap
-
-- [ ] **Batch processing** — Compress entire folders
-- [ ] **FFFDNet/DRUNet** — Alternative architectures comparison
-- [ ] **GAN enhancement** — Super-resolution post-processing
-- [ ] **Nail segmentation** — ROI-aware compression (nail Q90, background Q25)
-- [ ] **Mobile app** — React Native / Flutter
-- [ ] **Cloud API** — AWS Lambda deployment
-- [ ] **Adaptive quality** — ML-based optimal Q prediction per image
-- [ ] **Video compression** — Extend to nail art tutorials
+* Chroma subsampling control
+* Unsharp masking post-processing
+* ROI metric extraction
 
 ---
 
-## 🙏 Acknowledgments
+## 5. Results
+
+The system demonstrates improved perceptual fidelity in ROI regions compared to baseline JPEG compression, particularly in high-frequency textures such as glitter, fine lines, and reflective surfaces.
+
+Typical trends observed:
+
+* Increased SSIM and PSNR in ROI regions relative to global metrics
+* Significant reduction in blocking artifacts at moderate compression levels (Q50–Q75)
+* Improved perceptual similarity as measured by LPIPS
+
+---
+
+## 6. Discussion
+
+The proposed pipeline highlights the importance of domain-aware compression strategies. While general-purpose codecs optimize for average perceptual quality, application-specific evaluation (e.g., nail-centric ROI analysis) reveals localized improvements that are not captured by global metrics alone.
+
+Limitations include dependency on accurate implicit ROI assumptions and potential generalization gaps outside cosmetic imagery.
+
+---
+
+## 7. Conclusion
+
+We introduce a hybrid compression-restoration framework tailored for nail art imagery that integrates classical JPEG compression with deep learning-based artifact removal. The system emphasizes perceptual quality preservation in regions of interest and provides a reproducible pipeline for application-specific image compression research.
+
+---
+
+## Acknowledgments
 
 > "Rumi saw God within himself; I see you within my work."
 
 Special thanks to you Aziz for your support, encouragement, and presence throughout this project. Your impact exists in every detail of it.
 
-- DnCNN architecture: [Zhang et al., "Beyond a Gaussian Denoiser"](https://arxiv.org/abs/1608.08151)
-- Kaggle community for GPU resources
+## References
+
+* Zhang et al., "Beyond a Gaussian Denoiser: Residual Learning of Deep CNN for Image Denoising", 2017.
+* Wallace, G. K., "The JPEG Still Picture Compression Standard", 1992.
 
 ---
 
-## 👩‍💻 Author
+## Appendix A: Implementation Stack
 
-**Mariya DERRAG**
-
-Interested in: AI · Image Processing · Neural Restoration · Interactive Web Apps
+* PyTorch
+* Gradio
+* OpenCV
+* PIL
+* NumPy
+* LPIPS
+* scikit-image
 
 ---
 
-## 📜 License
+## Appendix B: Notes on Reproducibility
 
-MIT License — see [LICENSE](LICENSE) for details.
-
-> **Note**: The DnCNN model weights are provided for research/educational use. Commercial use of pre-trained weights requires verification of training data licensing.
-'''
-
-with open('/mnt/agents/output/README.md', 'w') as f:
-    f.write(readme)
-
-print("✅ README.md saved!")
-print("\nAcknowledgments section preserved exactly as requested.")
+The system uses deterministic JPEG encoding settings where applicable. Variations in entropy coding may introduce minor bitrate fluctuations depending on image content.
 
