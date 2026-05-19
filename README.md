@@ -81,7 +81,7 @@ Copy nail_art_compression_pro.ipynb
 Run all cells → Gradio interface appears
 Option B: Local Environment
 # Clone repository
-git clone https://github.com/yourusername/nail-art-compression.git
+git clone https://github.com/derragmaria-code/nail-art-compression.git
 cd nail-art-compression
 
 # Create virtual environment
