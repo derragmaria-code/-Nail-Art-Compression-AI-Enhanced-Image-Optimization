@@ -148,12 +148,17 @@ The ROI is defined as the central 50‑60% of the image (where the nail is typic
 ## Training Scope Notice
 
 This implementation uses **per-quality (PQ) DnCNN models** following standard practice. 
-Our research (DERRAG 2026) found that training scope significantly affects results:
-- PQ models excel at quality extremes (Q=10, Q=75)
-- Global (GL) models can outperform PQ at intermediate qualities (Q=50)
-- ARCNN shows more stable behavior across qualities than DnCNN
+Our research found that training scope is a **hidden variable** producing non-monotonic, 
+architecture-dependent effects invisible when scope is not varied:
 
-For production use, evaluate both scopes on your target images.
+| Architecture | Per-Quality (PQ) | Global (GL) |
+|-------------|------------------|-------------|
+| **DnCNN**   | Best at extremes (Q=10: +0.60 dB, Q=75: +0.55 dB) | Best at Q=50 (+0.42 dB vs. PQ) |
+| **ARCNN**   | Most stable Q≤75 (+0.54 to +0.34 dB) | Degrades at Q=90 (−0.74 dB) |
+| **FFDNet**  | Degrades all Q (−3.5 to −7.3 dB) | Also degrades — structural mismatch with JPEG block artifacts |
+
+For production use, evaluate both scopes on your target images. See Chapter 4 of the thesis 
+for the full factorial design (3 architectures × 2 scopes).
 
 ## Acknowledgments
 
