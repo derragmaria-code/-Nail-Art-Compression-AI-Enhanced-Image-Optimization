@@ -145,6 +145,15 @@ The ROI is defined as the central 50‑60% of the image (where the nail is typic
 - For the printer, colour management (ICC profiles) should be integrated.
 
 ---
+## Training Scope Notice
+
+This implementation uses **per-quality (PQ) DnCNN models** following standard practice. 
+Our research (DERRAG 2026) found that training scope significantly affects results:
+- PQ models excel at quality extremes (Q=10, Q=75)
+- Global (GL) models can outperform PQ at intermediate qualities (Q=50)
+- ARCNN shows more stable behavior across qualities than DnCNN
+
+For production use, evaluate both scopes on your target images.
 
 ## Acknowledgments
 
